@@ -28,6 +28,8 @@ from qgis.PyQt.QtWidgets import QAction
 from qgis.core import QgsProject, QgsVectorLayer, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform
 from qgis.gui import QgsMapToolEmitPoint
 
+import requests
+
 from .resources import *
 from .myfirstplugin_dialog import PluginScriptDialog
 import os.path
@@ -171,5 +173,42 @@ class PluginScript:
         # affiche mes lon et lat dans mon qlineedit
         self.dlg.longitude_point.setText(str(lon))
         self.dlg.latitude_point.setText(str(lat))
+
+        self.reverse_geocoding(lon, lat)
+
+    # clique sur la carte et obtiens l’adresse BAN la plus proche du point cliqué
+    def reverse_geocoding(self, lon, lat):
+        url = f'https://data.geopf.fr/geocodage/reverse?lat={lat}&lon={lon}&limit=1&type=housenumber'
+
+        try:
+            
+            # requetage sur l'api ban en type get
+            response = requests.get(url)
+
+            # valide la requete
+            if response.status_code == 200:
+
+                # extrait les data en format json
+                data = response.json()
+
+                # extraction des données de la requete
+                if data.get('features'):
+                    print(data['features'][0]['properties'].get("label"))
+                    num_voie = data['features'][0]['properties'].get("housenumber")
+                    type_voie = data['features'][0]['properties'].get("type")
+                    name_voie = data['features'][0]['properties'].get("name")
+                    citycode = data['features'][0]['properties'].get("citycode")
+                    city = data['features'][0]['properties'].get("city")
+
+                    address = f'{num_voie} {type_voie} {name_voie}, {citycode} {city}'
+
+                    self.dlg.address_edit.setText(str(address))
+                
+                else :
+                    self.dlg.address_edit.setText(f'Adresse introuvable')
+
+        except Exception as e:
+            self.dlg.address_edit.setText(f'Erreur : {e}')
+
 
     
