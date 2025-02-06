@@ -25,7 +25,7 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-from qgis.core import QgsProject, QgsVectorLayer, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform
+from qgis.core import QgsProject, QgsVectorLayer, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsGeometry, QgsFeatureRequest
 from qgis.gui import QgsMapToolEmitPoint
 
 import requests
@@ -164,6 +164,9 @@ class PluginScript:
         transform = QgsCoordinateTransform(map_crs, wgs_crs, QgsProject.instance())
         point_wgs = transform.transform(map_point)
 
+        point_geometry = QgsGeometry.fromPointXY(map_point)
+        buffer_geometry = point_geometry.buffer(10, 5)
+
         # extraction du long et lat
         lon = round(point_wgs.x(), 5)
         lat = round(point_wgs.y(), 5)
@@ -175,6 +178,11 @@ class PluginScript:
         self.dlg.latitude_point.setText(str(lat))
 
         self.reverse_geocoding(lon, lat)
+
+        select_layername = self.dlg.combobox_layers.currentText()
+
+        if select_layername :
+            self.count_objects_nearest(select_layername, buffer_geometry)
 
     # clique sur la carte et obtiens l’adresse BAN la plus proche du point cliqué
     def reverse_geocoding(self, lon, lat):
@@ -194,13 +202,11 @@ class PluginScript:
                 # extraction des données de la requete
                 if data.get('features'):
                     print(data['features'][0]['properties'].get("label"))
-                    num_voie = data['features'][0]['properties'].get("housenumber")
-                    type_voie = data['features'][0]['properties'].get("type")
                     name_voie = data['features'][0]['properties'].get("name")
                     citycode = data['features'][0]['properties'].get("citycode")
                     city = data['features'][0]['properties'].get("city")
 
-                    address = f'{num_voie} {type_voie} {name_voie}, {citycode} {city}'
+                    address = f'{name_voie}, {citycode} {city}'
 
                     self.dlg.address_edit.setText(str(address))
                 
@@ -210,5 +216,26 @@ class PluginScript:
         except Exception as e:
             self.dlg.address_edit.setText(f'Erreur : {e}')
 
+    def count_objects_nearest(self, layer_name, buffer_geom):
 
-    
+        layer = QgsProject.instance().mapLayersByName(layer_name)[0]
+
+        if not layer:
+            print(f"La couche {layer_name} n'existe pas.")
+            return
+
+        layer_crs = layer.crs()
+
+        map_crs = self.canvas.mapSettings().destinationCrs()
+
+        transform = QgsCoordinateTransform(map_crs, layer_crs, QgsProject.instance())
+
+        buffer_geom.transform(transform)
+
+        count = 0
+        for feature in layer.getFeatures():
+            feature_geom = feature.geometry()
+            if feature_geom.intersects(buffer_geom):
+                count += 1
+
+        print(f"Nombre d'entités intersectées dans le buffer : {count}")
