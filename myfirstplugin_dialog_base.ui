@@ -1051,6 +1051,38 @@ color: rgb(0, 0, 0);</string>
     <string>Latitude</string>
    </property>
   </widget>
+  <widget class="QLabel" name="address_label">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>410</y>
+     <width>81</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>Adresse :</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="address_edit">
+   <property name="geometry">
+    <rect>
+     <x>120</x>
+     <y>410</y>
+     <width>381</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(226, 220, 193);
+color: rgb(0, 0, 0);</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections>
