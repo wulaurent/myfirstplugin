@@ -24,7 +24,10 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from qgis.core import QgsProject, QgsVectorLayer
+
+from qgis.core import QgsProject, QgsVectorLayer, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform
+from qgis.gui import QgsMapToolEmitPoint
+
 from .resources import *
 from .myfirstplugin_dialog import PluginScriptDialog
 import os.path
@@ -50,6 +53,12 @@ class PluginScript:
         self.menu = self.tr("&MyFirstPlugin")
 
         self.first_start = None
+
+        # gestion du clic sur la carte
+        self.canvas = iface.mapCanvas()
+        self.map_tool = QgsMapToolEmitPoint(self.canvas)
+        self.map_tool.canvasClicked.connect(self.on_canvas_click)
+        self.canvas.setMapTool(self.map_tool)
 
     def tr(self, message):
         return QCoreApplication.translate("PluginScript", message)
@@ -136,5 +145,31 @@ class PluginScript:
                 if layer.wkbType() == 1:
                     print(layer.name())
                     self.dlg.combobox_layers.addItem(layer.name())
+
+    # clique sur la carte pour obtenir les coordonnées correspondantes au point cliqué
+    def on_canvas_click(self, point):
+
+        # retourne les coordonnées à partir de la projection du canvas
+        map_point = QgsPointXY(point.x(), point.y())
+
+        # système de projection de destination (EPSG:4326)
+        wgs_crs = QgsCoordinateReferenceSystem("EPSG:4326")
+
+        # projection (EPSG:3857) actuelle du canvas
+        map_crs = self.canvas.mapSettings().destinationCrs()
+
+        # converti les coordonnées 3857 en 4326
+        transform = QgsCoordinateTransform(map_crs, wgs_crs, QgsProject.instance())
+        point_wgs = transform.transform(map_point)
+
+        # extraction du long et lat
+        lon = round(point_wgs.x(), 5)
+        lat = round(point_wgs.y(), 5)
+        
+        print(f'lon : {lon}, lat : {lat}')
+
+        # affiche mes lon et lat dans mon qlineedit
+        self.dlg.longitude_point.setText(str(lon))
+        self.dlg.latitude_point.setText(str(lat))
 
     
