@@ -973,7 +973,7 @@ color: rgb(0, 0, 0);</string>
     <string/>
    </property>
    <property name="pixmap">
-    <pixmap>../../../../../../../../../Téléchargements/qgis_logo.jpg</pixmap>
+    <pixmap>image/qgis_logo.jpg</pixmap>
    </property>
    <property name="scaledContents">
     <bool>true</bool>
@@ -1017,7 +1017,7 @@ color: rgb(0, 0, 0);</string>
     <bool>true</bool>
    </property>
    <property name="clearButtonEnabled">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
   </widget>
   <widget class="QLabel" name="longitude_label">
@@ -1053,7 +1053,7 @@ color: rgb(0, 0, 0);</string>
     <bool>true</bool>
    </property>
    <property name="clearButtonEnabled">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
   </widget>
   <widget class="QLabel" name="latitude_label">
@@ -1107,7 +1107,7 @@ color: rgb(0, 0, 0);</string>
     <bool>true</bool>
    </property>
    <property name="clearButtonEnabled">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
   </widget>
   <widget class="QLabel" name="address_label_2">
