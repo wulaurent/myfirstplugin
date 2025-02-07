@@ -26,11 +26,11 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtCore import QVariant
 
 from qgis.core import QgsProject, QgsVectorLayer, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsGeometry, QgsFeatureRequest, QgsFeature, QgsField
 from qgis.gui import QgsMapToolEmitPoint
 from qgis.PyQt.QtGui import QColor
+
 import requests
 
 from .resources import *
@@ -174,7 +174,7 @@ class PluginScript:
 
         # creation du point et du tampon
         point_geometry = QgsGeometry.fromPointXY(map_point)
-        buffer_geometry = point_geometry.buffer(float(distance_meters), 5)
+        buffer_geometry = point_geometry.buffer(float(distance_meters), 10)
 
         # extract du long et lat
         lon = round(point_wgs.x(), 5)
@@ -194,6 +194,9 @@ class PluginScript:
         if select_layername:
             self.count_objects_nearest(select_layername, buffer_geometry)
 
+        self.display_buffer_zone(buffer_geometry)
+        self.canvas.setMapTool(self.map_tool)
+
 
 
     # clique sur la carte et obtiens l’adresse BAN la plus proche du point cliqué
@@ -201,7 +204,6 @@ class PluginScript:
         url = f'https://data.geopf.fr/geocodage/reverse?lat={lat}&lon={lon}&limit=1&type=housenumber'
 
         try:
-
             # requetage sur l'api ban en type get
             response = requests.get(url)
 
@@ -213,7 +215,6 @@ class PluginScript:
 
                 # extraction des données de la requete
                 if data.get('features'):
-                    print(data['features'][0]['properties'].get("label"))
                     name_voie = data['features'][0]['properties'].get("name")
                     citycode = data['features'][0]['properties'].get("citycode")
                     city = data['features'][0]['properties'].get("city")
@@ -256,4 +257,65 @@ class PluginScript:
 
         self.dlg.object_label.setText(str(count))
 
-        print(f"Nombre d'entités intersectées dans le buffer : {count}")
+
+    # créer une zone tampon autour du point cliqué sur la carte
+    def display_buffer_zone(self, buffer_geometry):
+        try:
+            layer_name = 'buffers'
+            
+            # supprime les mêmes layer ayant le même nom
+            existing_layers = QgsProject.instance().mapLayersByName(layer_name)
+            for layer in existing_layers:
+                QgsProject.instance().removeMapLayer(layer)
+
+            # vérifie si mon buffer est vide
+            if buffer_geometry.isEmpty():
+                print('La géométrie est vide')
+                return
+            
+            # conversion du buffer dans le bon système de proj et crée la zone tampon temporaire 
+            project_crs = self.canvas.mapSettings().destinationCrs()
+            wgs_crs = QgsCoordinateReferenceSystem("EPSG:4326")
+            buffer_geometry.transform(QgsCoordinateTransform(wgs_crs, project_crs, QgsProject.instance()))
+            buffer_layer = QgsVectorLayer(f"Polygon?crs={project_crs.authid()}", layer_name, "memory")
+
+            # construction des data dans la mémoire
+            provider = buffer_layer.dataProvider()
+
+            # active l'édition de la couche tampon
+            buffer_layer.startEditing()
+
+            # crée l'entité avec la géométrie du buffer
+            feature = QgsFeature()
+            feature.setGeometry(buffer_geometry)
+            provider.addFeatures([feature])
+
+            # sauvegarde les changements
+            buffer_layer.commitChanges()
+
+            # applique un style de symbo à la zone tampon
+            symbol = buffer_layer.renderer().symbol()
+            symbol_layer = symbol.symbolLayer(0)
+
+            if symbol_layer:
+
+                # contour noir
+                symbol_layer.setStrokeColor(QColor("#000000"))
+
+                # épaisseur du contour
+                symbol_layer.setStrokeWidth(0.3)
+
+                # remplissage transparent
+                symbol_layer.setFillColor(QColor(0, 0, 0, 0))
+
+            # redessinement du buffer avec les nouvelles symbo
+            buffer_layer.triggerRepaint()
+            
+            # ajoute la couche au projet courant
+            QgsProject.instance().addMapLayer(buffer_layer)
+
+            # refresh la map pour faire apparaitre la nouvelle couche
+            self.canvas.setLayers(self.canvas.layers())
+
+        except Exception as e:
+            QMessageBox.critical(None, "Erreur", f'Une erreur est survenue : {e}')
