@@ -1010,6 +1010,15 @@ color: rgb(0, 0, 0);</string>
     <string notr="true">background-color: rgb(226, 220, 193);
 color: rgb(0, 0, 0);</string>
    </property>
+   <property name="dragEnabled">
+    <bool>true</bool>
+   </property>
+   <property name="readOnly">
+    <bool>true</bool>
+   </property>
+   <property name="clearButtonEnabled">
+    <bool>true</bool>
+   </property>
   </widget>
   <widget class="QLabel" name="longitude_label">
    <property name="geometry">
@@ -1036,6 +1045,15 @@ color: rgb(0, 0, 0);</string>
    <property name="styleSheet">
     <string notr="true">background-color: rgb(226, 220, 193);
 color: rgb(0, 0, 0);</string>
+   </property>
+   <property name="dragEnabled">
+    <bool>true</bool>
+   </property>
+   <property name="readOnly">
+    <bool>true</bool>
+   </property>
+   <property name="clearButtonEnabled">
+    <bool>true</bool>
    </property>
   </widget>
   <widget class="QLabel" name="latitude_label">
@@ -1082,6 +1100,15 @@ color: rgb(0, 0, 0);</string>
     <string notr="true">background-color: rgb(226, 220, 193);
 color: rgb(0, 0, 0);</string>
    </property>
+   <property name="dragEnabled">
+    <bool>true</bool>
+   </property>
+   <property name="readOnly">
+    <bool>true</bool>
+   </property>
+   <property name="clearButtonEnabled">
+    <bool>true</bool>
+   </property>
   </widget>
   <widget class="QLabel" name="address_label_2">
    <property name="geometry">
@@ -1101,7 +1128,7 @@ color: rgb(0, 0, 0);</string>
     <string>Nombres d'objets :</string>
    </property>
   </widget>
-  <widget class="QLabel" name="longitude_label_2">
+  <widget class="QLabel" name="text">
    <property name="geometry">
     <rect>
      <x>40</x>
@@ -1114,7 +1141,7 @@ color: rgb(0, 0, 0);</string>
     <string>Il y a</string>
    </property>
   </widget>
-  <widget class="QLabel" name="longitude_label_3">
+  <widget class="QLabel" name="text_2">
    <property name="geometry">
     <rect>
      <x>140</x>
@@ -1127,7 +1154,7 @@ color: rgb(0, 0, 0);</string>
     <string>objet(s) à moins de </string>
    </property>
   </widget>
-  <widget class="QLabel" name="longitude_label_4">
+  <widget class="QLabel" name="text_3">
    <property name="geometry">
     <rect>
      <x>330</x>
