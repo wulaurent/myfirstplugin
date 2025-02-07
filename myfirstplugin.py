@@ -63,8 +63,7 @@ class PluginScript:
         self.canvas = iface.mapCanvas()
         self.map_tool = QgsMapToolEmitPoint(self.canvas)
         self.map_tool.canvasClicked.connect(self.on_canvas_click)
-        self.canvas.setMapTool(self.map_tool)
-
+        
     def tr(self, message):
         return QCoreApplication.translate("PluginScript", message)
 
@@ -128,9 +127,18 @@ class PluginScript:
 
         self.list_layers()
         self.dlg.show()
+
+        # active le clique sur la carte
+        self.canvas.setMapTool(self.map_tool)
         result = self.dlg.exec_()
+
         if result:
             pass
+
+        self.remove_buffer_layer()
+        
+        # désactive le clique sur la carte lorsque le plugin est fermé
+        self.canvas.unsetMapTool(self.map_tool)
 
     
     # fonction utilitaire de transformation de systeme de projection
@@ -141,61 +149,79 @@ class PluginScript:
     # liste les couches ponctuels dans le projet courant
     def list_layers(self):
 
-        # clear le contenue de mon widget comboxbox avant chaque lancement de la fonction
+        # clear le contenu de mon widget combobox avant chaque lancement de la fonction
         self.dlg.combobox_layers.clear()
 
-        # récupère les noms des couches du projet courant
-        layers_name = QgsProject.instance().mapLayers().values()
+        # récupère les couches du projet courant
+        layers = QgsProject.instance().mapLayers().values()
 
-        for layer in layers_name:
+        if not layers:
+            QMessageBox.warning(self.dlg, "Attention", "Aucune couche trouvée dans le projet.")
+            return
+
+        # ensemble pour stocker les noms uniques des couches
+        unique_layer_names = set()
+
+        for layer in layers:
             # filtre uniquement les couches vectorielles
             if layer.type() == QgsVectorLayer.VectorLayer:
 
-                # filtre uniquement les couches poncutelles
+                # filtre uniquement les couches ponctuelles
                 if layer.wkbType() == 1:
-                    self.dlg.combobox_layers.addItem(layer.name())
+                    layer_name = layer.name()
+
+                    # filtre les uniques names
+                    if layer_name not in unique_layer_names:
+                        self.dlg.combobox_layers.addItem(layer_name)
+                        unique_layer_names.add(layer_name)
 
     # clique sur la carte pour obtenir les coordonnées correspondantes au point cliqué
     def on_canvas_click(self, point):
-        # récupère les coordonnées du point cliqué dans le système de coordonnées du canvas
-        map_point = QgsPointXY(point.x(), point.y())
+        
+        try:
+            # récupère les coordonnées du point cliqué dans le système de coordonnées du canvas
+            map_point = QgsPointXY(point.x(), point.y())
 
-        # transforme des coordonnées (EPSG:4326)
-        map_crs = self.canvas.mapSettings().destinationCrs()
-        wgs_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-        point_wgs = self.transform_coordinates(map_point, map_crs, wgs_crs)
+            # transforme des coordonnées (EPSG:4326)
+            map_crs = self.canvas.mapSettings().destinationCrs()
+            wgs_crs = QgsCoordinateReferenceSystem("EPSG:4326")
+            point_wgs = self.transform_coordinates(map_point, map_crs, wgs_crs)
 
-        # recup la distance du buffer depuis l'interface utilisateur
-        distance_meters = self.dlg.meters_label.text()
+            # recup la distance du buffer depuis l'interface utilisateur
+            distance_meters = self.dlg.meters_label.text()
 
-        if not distance_meters.isdigit():
-            QMessageBox.warning(self.dlg, "Erreur", "Veuillez entrer une distance valide en mètres.")
-            return
+            if not distance_meters.isdigit():
+                QMessageBox.warning(self.dlg, "Erreur", "Veuillez entrer une distance valide en mètres.")
+                return
 
-        # creation du point et du tampon
-        point_geometry = QgsGeometry.fromPointXY(map_point)
-        buffer_geometry = point_geometry.buffer(float(distance_meters), 10)
+            # creation du point et du tampon
+            point_geometry = QgsGeometry.fromPointXY(map_point)
+            buffer_geometry = point_geometry.buffer(float(distance_meters), 10)
 
-        # extract du long et lat
-        lon = round(point_wgs.x(), 5)
-        lat = round(point_wgs.y(), 5)
-        print(f'lon : {lon}, lat : {lat}')
+            # extract du long et lat
+            lon = round(point_wgs.x(), 5)
+            lat = round(point_wgs.y(), 5)
 
-        # affiche les coordonnées dans l'interface utilisateur
-        self.dlg.longitude_point.setText(str(lon))
-        self.dlg.latitude_point.setText(str(lat))
+            # affiche les coordonnées dans l'interface utilisateur
+            self.dlg.longitude_point.setText(str(lon))
+            self.dlg.latitude_point.setText(str(lat))
 
-        # effecue le géocodage inverse
-        self.reverse_geocoding(lon, lat)
+            # effecue le géocodage inverse
+            self.reverse_geocoding(lon, lat)
 
-        # recup le nom de la couche sélectionnée
-        select_layername = self.dlg.combobox_layers.currentText()
+            # recup le nom de la couche sélectionnée
+            select_layername = self.dlg.combobox_layers.currentText()
 
-        if select_layername:
+            if not select_layername:
+                QMessageBox.warning(self.dlg, "Erreur", "Aucune couche sélectionnée.")
+                return
+            
             self.count_objects_nearest(select_layername, buffer_geometry)
+            self.display_buffer_zone(buffer_geometry)
+            self.canvas.setMapTool(self.map_tool)
 
-        self.display_buffer_zone(buffer_geometry)
-        self.canvas.setMapTool(self.map_tool)
+        except Exception as e:
+            QMessageBox.critical(self.dlg, "Erreur", f"Une erreur est survenue lors du clic sur la carte : {e}")
 
 
 
@@ -232,30 +258,34 @@ class PluginScript:
 
     # compte les objets dans le buffer
     def count_objects_nearest(self, layer_name, buffer_geom):
+        try:
+            # récupère la couche du combobox
+            layer = QgsProject.instance().mapLayersByName(layer_name)[0]
 
-        # récupère la couche du combobox
-        layer = QgsProject.instance().mapLayersByName(layer_name)[0]
+            if not layer:
+                print(f"La couche {layer_name} n'existe pas.")
+                return
 
-        if not layer:
-            print(f"La couche {layer_name} n'existe pas.")
-            return
+            layer_crs = layer.crs()
 
-        layer_crs = layer.crs()
+            map_crs = self.canvas.mapSettings().destinationCrs()
 
-        map_crs = self.canvas.mapSettings().destinationCrs()
+            # transforme la géométrie du buffer dans le CRS de la couche
+            transform = QgsCoordinateTransform(map_crs, layer_crs, QgsProject.instance())
+            buffer_geom.transform(transform)
 
-        # transforme la géométrie du buffer dans le CRS de la couche
-        transform = QgsCoordinateTransform(map_crs, layer_crs, QgsProject.instance())
-        buffer_geom.transform(transform)
+            # compte le nb de feature à partir d'une jointure spatiale 
+            count = 0
+            for feature in layer.getFeatures():
+                feature_geom = feature.geometry()
+                if feature_geom.intersects(buffer_geom):
+                    count += 1
 
-        # compte le nb de feature à partir d'une jointure spatiale 
-        count = 0
-        for feature in layer.getFeatures():
-            feature_geom = feature.geometry()
-            if feature_geom.intersects(buffer_geom):
-                count += 1
+            self.dlg.object_label.setText(str(count))
+        
+        except Exception as e:
+            QMessageBox.critical(self.dlg, "Erreur", f"erreur lors du comptage des objets : {e}")
 
-        self.dlg.object_label.setText(str(count))
 
 
     # créer une zone tampon autour du point cliqué sur la carte
@@ -319,3 +349,15 @@ class PluginScript:
 
         except Exception as e:
             QMessageBox.critical(None, "Erreur", f'Une erreur est survenue : {e}')
+    
+    # supprime ma couche tampon si elle existe
+    def remove_buffer_layer(self):
+
+        # selectionne ma zone tampon à partir de son nom
+        layers = QgsProject.instance().mapLayersByName('buffers')
+        if layers:
+            # supprime ma couche s'il mon buffer existe
+            QgsProject.instance().removeMapLayer(layers[0].id())
+
+        # refresh la carte
+        self.canvas.refresh()
