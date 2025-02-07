@@ -1110,7 +1110,7 @@ color: rgb(0, 0, 0);</string>
     <bool>false</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="address_label_2">
+  <widget class="QLabel" name="object_number_label">
    <property name="geometry">
     <rect>
      <x>30</x>
