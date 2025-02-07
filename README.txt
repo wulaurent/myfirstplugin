@@ -30,7 +30,3 @@ For more information, see the PyQGIS Developer Cookbook at:
 http://www.qgis.org/pyqgis-cookbook/index.html
 
 (C) 2011-2018 GeoApt LLC - geoapt.com
-
-
-enlever le clique sur la carte (fenetre se ferme, ok, annuler)
-retirer le lyaer buffer s'il existe (fenetre se ferme, ok, annuler)
