@@ -983,7 +983,7 @@ color: rgb(0, 0, 0);</string>
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>310</y>
+     <y>300</y>
      <width>211</width>
      <height>16</height>
     </rect>
@@ -1000,8 +1000,8 @@ color: rgb(0, 0, 0);</string>
   <widget class="QLineEdit" name="longitude_point">
    <property name="geometry">
     <rect>
-     <x>110</x>
-     <y>350</y>
+     <x>120</x>
+     <y>340</y>
      <width>141</width>
      <height>23</height>
     </rect>
@@ -1010,12 +1010,21 @@ color: rgb(0, 0, 0);</string>
     <string notr="true">background-color: rgb(226, 220, 193);
 color: rgb(0, 0, 0);</string>
    </property>
+   <property name="dragEnabled">
+    <bool>true</bool>
+   </property>
+   <property name="readOnly">
+    <bool>true</bool>
+   </property>
+   <property name="clearButtonEnabled">
+    <bool>true</bool>
+   </property>
   </widget>
   <widget class="QLabel" name="longitude_label">
    <property name="geometry">
     <rect>
-     <x>40</x>
-     <y>350</y>
+     <x>50</x>
+     <y>340</y>
      <width>61</width>
      <height>21</height>
     </rect>
@@ -1028,7 +1037,7 @@ color: rgb(0, 0, 0);</string>
    <property name="geometry">
     <rect>
      <x>350</x>
-     <y>350</y>
+     <y>340</y>
      <width>141</width>
      <height>23</height>
     </rect>
@@ -1037,12 +1046,21 @@ color: rgb(0, 0, 0);</string>
     <string notr="true">background-color: rgb(226, 220, 193);
 color: rgb(0, 0, 0);</string>
    </property>
+   <property name="dragEnabled">
+    <bool>true</bool>
+   </property>
+   <property name="readOnly">
+    <bool>true</bool>
+   </property>
+   <property name="clearButtonEnabled">
+    <bool>true</bool>
+   </property>
   </widget>
   <widget class="QLabel" name="latitude_label">
    <property name="geometry">
     <rect>
      <x>290</x>
-     <y>350</y>
+     <y>340</y>
      <width>61</width>
      <height>21</height>
     </rect>
@@ -1055,7 +1073,7 @@ color: rgb(0, 0, 0);</string>
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>410</y>
+     <y>400</y>
      <width>81</width>
      <height>21</height>
     </rect>
@@ -1073,7 +1091,7 @@ color: rgb(0, 0, 0);</string>
    <property name="geometry">
     <rect>
      <x>120</x>
-     <y>410</y>
+     <y>400</y>
      <width>381</width>
      <height>23</height>
     </rect>
@@ -1081,6 +1099,105 @@ color: rgb(0, 0, 0);</string>
    <property name="styleSheet">
     <string notr="true">background-color: rgb(226, 220, 193);
 color: rgb(0, 0, 0);</string>
+   </property>
+   <property name="dragEnabled">
+    <bool>true</bool>
+   </property>
+   <property name="readOnly">
+    <bool>true</bool>
+   </property>
+   <property name="clearButtonEnabled">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QLabel" name="address_label_2">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>460</y>
+     <width>151</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>Nombres d'objets :</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="text">
+   <property name="geometry">
+    <rect>
+     <x>40</x>
+     <y>510</y>
+     <width>31</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Il y a</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="text_2">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>510</y>
+     <width>121</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>objet(s) à moins de </string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="text_3">
+   <property name="geometry">
+    <rect>
+     <x>330</x>
+     <y>510</y>
+     <width>141</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>mètres du point cliqué</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="meters_label">
+   <property name="geometry">
+    <rect>
+     <x>270</x>
+     <y>510</y>
+     <width>51</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(226, 220, 193);
+color: rgb(0, 0, 0);</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="object_label">
+   <property name="geometry">
+    <rect>
+     <x>80</x>
+     <y>510</y>
+     <width>51</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="layoutDirection">
+    <enum>Qt::LeftToRight</enum>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
    </property>
   </widget>
  </widget>

@@ -25,9 +25,12 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-from qgis.core import QgsProject, QgsVectorLayer, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform
-from qgis.gui import QgsMapToolEmitPoint
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import QVariant
 
+from qgis.core import QgsProject, QgsVectorLayer, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsGeometry, QgsFeatureRequest, QgsFeature, QgsField
+from qgis.gui import QgsMapToolEmitPoint
+from qgis.PyQt.QtGui import QColor
 import requests
 
 from .resources import *
@@ -129,11 +132,16 @@ class PluginScript:
         if result:
             pass
 
+    
+    # fonction utilitaire de transformation de systeme de projection
+    def transform_coordinates(self, point, source_crs, target_crs):
+        transform = QgsCoordinateTransform(source_crs, target_crs, QgsProject.instance())
+        return transform.transform(point)
 
-    # liste les couches ponctuels dans le projet courant 
+    # liste les couches ponctuels dans le projet courant
     def list_layers(self):
 
-        # clear le contenue de mon widget comboxbox avant chaque lancement de la fonction 
+        # clear le contenue de mon widget comboxbox avant chaque lancement de la fonction
         self.dlg.combobox_layers.clear()
 
         # récupère les noms des couches du projet courant
@@ -143,45 +151,57 @@ class PluginScript:
             # filtre uniquement les couches vectorielles
             if layer.type() == QgsVectorLayer.VectorLayer:
 
-                # filtre uniquement les couches poncutelles 
+                # filtre uniquement les couches poncutelles
                 if layer.wkbType() == 1:
-                    print(layer.name())
                     self.dlg.combobox_layers.addItem(layer.name())
 
     # clique sur la carte pour obtenir les coordonnées correspondantes au point cliqué
     def on_canvas_click(self, point):
-
-        # retourne les coordonnées à partir de la projection du canvas
+        # récupère les coordonnées du point cliqué dans le système de coordonnées du canvas
         map_point = QgsPointXY(point.x(), point.y())
 
-        # système de projection de destination (EPSG:4326)
-        wgs_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-
-        # projection (EPSG:3857) actuelle du canvas
+        # transforme des coordonnées (EPSG:4326)
         map_crs = self.canvas.mapSettings().destinationCrs()
+        wgs_crs = QgsCoordinateReferenceSystem("EPSG:4326")
+        point_wgs = self.transform_coordinates(map_point, map_crs, wgs_crs)
 
-        # converti les coordonnées 3857 en 4326
-        transform = QgsCoordinateTransform(map_crs, wgs_crs, QgsProject.instance())
-        point_wgs = transform.transform(map_point)
+        # recup la distance du buffer depuis l'interface utilisateur
+        distance_meters = self.dlg.meters_label.text()
 
-        # extraction du long et lat
+        if not distance_meters.isdigit():
+            QMessageBox.warning(self.dlg, "Erreur", "Veuillez entrer une distance valide en mètres.")
+            return
+
+        # creation du point et du tampon
+        point_geometry = QgsGeometry.fromPointXY(map_point)
+        buffer_geometry = point_geometry.buffer(float(distance_meters), 5)
+
+        # extract du long et lat
         lon = round(point_wgs.x(), 5)
         lat = round(point_wgs.y(), 5)
-        
         print(f'lon : {lon}, lat : {lat}')
 
-        # affiche mes lon et lat dans mon qlineedit
+        # affiche les coordonnées dans l'interface utilisateur
         self.dlg.longitude_point.setText(str(lon))
         self.dlg.latitude_point.setText(str(lat))
 
+        # effecue le géocodage inverse
         self.reverse_geocoding(lon, lat)
+
+        # recup le nom de la couche sélectionnée
+        select_layername = self.dlg.combobox_layers.currentText()
+
+        if select_layername:
+            self.count_objects_nearest(select_layername, buffer_geometry)
+
+
 
     # clique sur la carte et obtiens l’adresse BAN la plus proche du point cliqué
     def reverse_geocoding(self, lon, lat):
         url = f'https://data.geopf.fr/geocodage/reverse?lat={lat}&lon={lon}&limit=1&type=housenumber'
 
         try:
-            
+
             # requetage sur l'api ban en type get
             response = requests.get(url)
 
@@ -194,21 +214,46 @@ class PluginScript:
                 # extraction des données de la requete
                 if data.get('features'):
                     print(data['features'][0]['properties'].get("label"))
-                    num_voie = data['features'][0]['properties'].get("housenumber")
-                    type_voie = data['features'][0]['properties'].get("type")
                     name_voie = data['features'][0]['properties'].get("name")
                     citycode = data['features'][0]['properties'].get("citycode")
                     city = data['features'][0]['properties'].get("city")
 
-                    address = f'{num_voie} {type_voie} {name_voie}, {citycode} {city}'
+                    address = f'{name_voie}, {citycode} {city}'
 
+                    # ajout la valeur au widget
                     self.dlg.address_edit.setText(str(address))
-                
+
                 else :
                     self.dlg.address_edit.setText(f'Adresse introuvable')
 
         except Exception as e:
             self.dlg.address_edit.setText(f'Erreur : {e}')
 
+    # compte les objets dans le buffer
+    def count_objects_nearest(self, layer_name, buffer_geom):
 
-    
+        # récupère la couche du combobox
+        layer = QgsProject.instance().mapLayersByName(layer_name)[0]
+
+        if not layer:
+            print(f"La couche {layer_name} n'existe pas.")
+            return
+
+        layer_crs = layer.crs()
+
+        map_crs = self.canvas.mapSettings().destinationCrs()
+
+        # transforme la géométrie du buffer dans le CRS de la couche
+        transform = QgsCoordinateTransform(map_crs, layer_crs, QgsProject.instance())
+        buffer_geom.transform(transform)
+
+        # compte le nb de feature à partir d'une jointure spatiale 
+        count = 0
+        for feature in layer.getFeatures():
+            feature_geom = feature.geometry()
+            if feature_geom.intersects(buffer_geom):
+                count += 1
+
+        self.dlg.object_label.setText(str(count))
+
+        print(f"Nombre d'entités intersectées dans le buffer : {count}")
